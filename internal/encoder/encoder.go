@@ -14,6 +14,7 @@ import (
 	"unsafe"
 
 	"github.com/jslyzt/go-json/internal/errors"
+	eopt "github.com/jslyzt/go-json/internal/option/encode"
 	"github.com/jslyzt/go-json/internal/runtime"
 )
 
@@ -419,10 +420,10 @@ func AppendMarshalJSON(ctx *RuntimeContext, code *Opcode, b []byte, v any) ([]by
 			return AppendNull(ctx, b), nil
 		}
 		stdctx := ctx.Option.Context
-		if ctx.Option.Flag&FieldQueryOption != 0 {
+		if ctx.Option.Flag&eopt.FieldQueryOption != 0 {
 			stdctx = SetFieldQueryToContext(stdctx, code.FieldQuery)
 		}
-		b, err := marshaler.MarshalJSON(stdctx)
+		b, err := marshaler.MarshalJSONCtx(stdctx)
 		if err != nil {
 			return nil, &errors.MarshalerError{Type: reflect.TypeOf(v), Err: err}
 		}
@@ -440,7 +441,7 @@ func AppendMarshalJSON(ctx *RuntimeContext, code *Opcode, b []byte, v any) ([]by
 	}
 	marshalBuf := ctx.MarshalBuf[:0]
 	marshalBuf = append(append(marshalBuf, bb...), nul)
-	compactedBuf, err := compact(b, marshalBuf, (ctx.Option.Flag&HTMLEscapeOption) != 0)
+	compactedBuf, err := compact(b, marshalBuf, (ctx.Option.Flag&eopt.HTMLEscapeOption) != 0)
 	if err != nil {
 		return nil, &errors.MarshalerError{Type: reflect.TypeOf(v), Err: err}
 	}
@@ -466,7 +467,7 @@ func AppendMarshalJSONIndent(ctx *RuntimeContext, code *Opcode, b []byte, v any)
 		if !ok {
 			return AppendNull(ctx, b), nil
 		}
-		b, err := marshaler.MarshalJSON(ctx.Option.Context)
+		b, err := marshaler.MarshalJSONCtx(ctx.Option.Context)
 		if err != nil {
 			return nil, &errors.MarshalerError{Type: reflect.TypeOf(v), Err: err}
 		}
@@ -489,7 +490,7 @@ func AppendMarshalJSONIndent(ctx *RuntimeContext, code *Opcode, b []byte, v any)
 		marshalBuf,
 		string(ctx.Prefix)+strings.Repeat(string(ctx.IndentStr), int(ctx.BaseIndent+code.Indent)),
 		string(ctx.IndentStr),
-		(ctx.Option.Flag&HTMLEscapeOption) != 0,
+		(ctx.Option.Flag&eopt.HTMLEscapeOption) != 0,
 	)
 	if err != nil {
 		return nil, &errors.MarshalerError{Type: reflect.TypeOf(v), Err: err}

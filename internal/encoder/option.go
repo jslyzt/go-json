@@ -3,23 +3,12 @@ package encoder
 import (
 	"context"
 	"io"
-)
 
-type OptionFlag uint8
-
-const (
-	HTMLEscapeOption OptionFlag = 1 << iota
-	IndentOption
-	UnorderedMapOption
-	DebugOption
-	ColorizeOption
-	ContextOption
-	NormalizeUTF8Option
-	FieldQueryOption
+	"github.com/jslyzt/go-json/internal/option/encode"
 )
 
 type Option struct {
-	Flag        OptionFlag
+	Flag        encode.OptionFlag
 	ColorScheme *ColorScheme
 	Context     context.Context
 	DebugOut    io.Writer
@@ -46,3 +35,10 @@ type (
 	ColorScheme = EncodeFormatScheme
 	ColorFormat = EncodeFormat
 )
+
+func GetOptionFlag(xopt *Option) *encode.OptionFlag {
+	if xopt != nil {
+		return &xopt.Flag
+	}
+	return nil
+}

@@ -5,6 +5,8 @@ import (
 
 	"github.com/jslyzt/go-json/internal/decoder"
 	"github.com/jslyzt/go-json/internal/encoder"
+	dopt "github.com/jslyzt/go-json/internal/option/decode"
+	eopt "github.com/jslyzt/go-json/internal/option/encode"
 )
 
 type EncodeOption = encoder.Option
@@ -13,14 +15,14 @@ type EncodeOptionFunc func(*EncodeOption)
 // UnorderedMap doesn't sort when encoding map type.
 func UnorderedMap() EncodeOptionFunc {
 	return func(opt *EncodeOption) {
-		opt.Flag |= encoder.UnorderedMapOption
+		opt.Flag |= eopt.UnorderedMapOption
 	}
 }
 
 // DisableHTMLEscape disables escaping of HTML characters ( '&', '<', '>' ) when encoding string.
 func DisableHTMLEscape() EncodeOptionFunc {
 	return func(opt *EncodeOption) {
-		opt.Flag &= ^encoder.HTMLEscapeOption
+		opt.Flag &= ^eopt.HTMLEscapeOption
 	}
 }
 
@@ -30,14 +32,14 @@ func DisableHTMLEscape() EncodeOptionFunc {
 // encoding/json implements here: https://github.com/golang/go/blob/6178d25fc0b28724b1b5aec2b1b74fc06d9294c7/src/encoding/json/encode.go#L1067-L1093.
 func DisableNormalizeUTF8() EncodeOptionFunc {
 	return func(opt *EncodeOption) {
-		opt.Flag &= ^encoder.NormalizeUTF8Option
+		opt.Flag &= ^eopt.NormalizeUTF8Option
 	}
 }
 
 // Debug outputs debug information when panic occurs during encoding.
 func Debug() EncodeOptionFunc {
 	return func(opt *EncodeOption) {
-		opt.Flag |= encoder.DebugOption
+		opt.Flag |= eopt.DebugOption
 	}
 }
 
@@ -58,11 +60,26 @@ func DebugDOT(w io.WriteCloser) EncodeOptionFunc {
 // Colorize add an identifier for coloring to the string of the encoded result.
 func Colorize(scheme *ColorScheme) EncodeOptionFunc {
 	return func(opt *EncodeOption) {
-		opt.Flag |= encoder.ColorizeOption
+		opt.Flag |= eopt.ColorizeOption
 		opt.ColorScheme = scheme
 	}
 }
 
+// NoOmitEmpty
+func NoOmitEmpty() EncodeOptionFunc {
+	return func(opt *EncodeOption) {
+		opt.Flag |= eopt.FieldNoOmitEmpty
+	}
+}
+
+// Int64ToString
+func Int64ToString() EncodeOptionFunc {
+	return func(opt *EncodeOption) {
+		opt.Flag |= eopt.Int64ToStringOption
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
 type DecodeOption = decoder.Option
 type DecodeOptionFunc func(*DecodeOption)
 
@@ -74,6 +91,20 @@ type DecodeOptionFunc func(*DecodeOption)
 // This behavior has a performance advantage as it allows the subsequent strings to be skipped if all fields have been evaluated.
 func DecodeFieldPriorityFirstWin() DecodeOptionFunc {
 	return func(opt *DecodeOption) {
-		opt.Flags |= decoder.FirstWinOption
+		opt.Flags |= dopt.FirstWinOption
+	}
+}
+
+// DecodeNoOmitEmpty
+func DecodeNoOmitEmpty() DecodeOptionFunc {
+	return func(opt *DecodeOption) {
+		opt.Flags |= dopt.FieldNoOmitEmpty
+	}
+}
+
+// DecodeInt64ToString
+func DecodeInt64ToString() DecodeOptionFunc {
+	return func(opt *DecodeOption) {
+		opt.Flags |= dopt.Int64ToStringOption
 	}
 }

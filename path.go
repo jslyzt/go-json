@@ -80,5 +80,10 @@ func (p *Path) Unmarshal(data []byte, v any, optFuncs ...DecodeOptionFunc) error
 
 // Get extract and substitute the value of the part corresponding to JSON Path from the input value.
 func (p *Path) Get(src, dst any) error {
-	return p.path.Get(reflect.ValueOf(src), reflect.ValueOf(dst))
+	return p.path.Get(nil, reflect.ValueOf(src), reflect.ValueOf(dst))
+}
+
+// Get extract and substitute the value of the part corresponding to JSON Path from the input value.
+func (p *Path) GetWithOpt(xopt *decoder.Option, src, dst any) error {
+	return p.path.Get(xopt, reflect.ValueOf(src), reflect.ValueOf(dst))
 }

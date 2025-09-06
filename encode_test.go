@@ -2003,7 +2003,7 @@ type marshalContextKey struct{}
 
 type marshalContextStructType struct{}
 
-func (t *marshalContextStructType) MarshalJSON(ctx context.Context) ([]byte, error) {
+func (t *marshalContextStructType) MarshalJSONCtx(ctx context.Context) ([]byte, error) {
 	v := ctx.Value(marshalContextKey{})
 	s, ok := v.(string)
 	if !ok {

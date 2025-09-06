@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jslyzt/go-json"
+	"github.com/smartystreets/goconvey/convey"
 )
 
 func TestExtractPath(t *testing.T) {
@@ -164,17 +165,14 @@ func TestUnmarshalPath(t *testing.T) {
 func TestGetPath(t *testing.T) {
 	t.Run("selector", func(t *testing.T) {
 		var v any
-		if err := json.Unmarshal([]byte(`{"a":{"b":10,"c":true},"b":"text"}`), &v); err != nil {
-			t.Fatal(err)
-		}
+		convey.So(json.Unmarshal([]byte(`{"a":{"b":10,"c":true},"b":"text"}`), &v), convey.ShouldBeNil)
+
 		path, err := json.CreatePath("$.a.b")
-		if err != nil {
-			t.Fatal(err)
-		}
+		convey.So(err, convey.ShouldBeNil)
+
 		var b int
-		if err := path.Get(v, &b); err != nil {
-			t.Fatal(err)
-		}
+		convey.So(path.Get(v, &b), convey.ShouldBeNil)
+
 		if b != 10 {
 			t.Fatalf("failed to decode by json.Get")
 		}

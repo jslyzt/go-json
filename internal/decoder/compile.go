@@ -49,13 +49,13 @@ func storeDecoder(typ uintptr, dec Decoder, m map[uintptr]Decoder) {
 	atomic.StorePointer(&cachedDecoderMap, *(*unsafe.Pointer)(unsafe.Pointer(&newDecoderMap)))
 }
 
-func compileToGetDecoderSlowPath(typeptr uintptr, typ *runtime.Type) (Decoder, error) {
+func compileToGetDecoderSlowPath(xopt *Option, typeptr uintptr, typ *runtime.Type) (Decoder, error) {
 	decoderMap := loadDecoderMap()
 	if dec, exists := decoderMap[typeptr]; exists {
 		return dec, nil
 	}
 
-	dec, err := compileHead(typ, map[uintptr]Decoder{})
+	dec, err := compileHead(xopt, typ, map[uintptr]Decoder{})
 	if err != nil {
 		return nil, err
 	}
@@ -63,17 +63,17 @@ func compileToGetDecoderSlowPath(typeptr uintptr, typ *runtime.Type) (Decoder, e
 	return dec, nil
 }
 
-func compileHead(typ *runtime.Type, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+func compileHead(xopt *Option, typ *runtime.Type, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
 	switch {
 	case implementsUnmarshalJSONType(runtime.PtrTo(typ)):
 		return newUnmarshalJSONDecoder(runtime.PtrTo(typ), "", ""), nil
 	case runtime.PtrTo(typ).Implements(unmarshalTextType):
 		return newUnmarshalTextDecoder(runtime.PtrTo(typ), "", ""), nil
 	}
-	return compile(typ.Elem(), "", "", structTypeToDecoder)
+	return compile(xopt, typ.Elem(), "", "", structTypeToDecoder)
 }
 
-func compile(typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+func compile(xopt *Option, typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
 	switch {
 	case implementsUnmarshalJSONType(runtime.PtrTo(typ)):
 		return newUnmarshalJSONDecoder(runtime.PtrTo(typ), structName, fieldName), nil
@@ -83,19 +83,19 @@ func compile(typ *runtime.Type, structName, fieldName string, structTypeToDecode
 
 	switch typ.Kind() {
 	case reflect.Ptr:
-		return compilePtr(typ, structName, fieldName, structTypeToDecoder)
+		return compilePtr(xopt, typ, structName, fieldName, structTypeToDecoder)
 	case reflect.Struct:
-		return compileStruct(typ, structName, fieldName, structTypeToDecoder)
+		return compileStruct(xopt, typ, structName, fieldName, structTypeToDecoder)
 	case reflect.Slice:
 		elem := typ.Elem()
 		if elem.Kind() == reflect.Uint8 {
 			return compileBytes(elem, structName, fieldName)
 		}
-		return compileSlice(typ, structName, fieldName, structTypeToDecoder)
+		return compileSlice(xopt, typ, structName, fieldName, structTypeToDecoder)
 	case reflect.Array:
-		return compileArray(typ, structName, fieldName, structTypeToDecoder)
+		return compileArray(xopt, typ, structName, fieldName, structTypeToDecoder)
 	case reflect.Map:
-		return compileMap(typ, structName, fieldName, structTypeToDecoder)
+		return compileMap(xopt, typ, structName, fieldName, structTypeToDecoder)
 	case reflect.Interface:
 		return compileInterface(typ, structName, fieldName)
 	case reflect.Uintptr:
@@ -156,14 +156,14 @@ func isStringTagSupportedType(typ *runtime.Type) bool {
 	return true
 }
 
-func compileMapKey(typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+func compileMapKey(xopt *Option, typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
 	if runtime.PtrTo(typ).Implements(unmarshalTextType) {
 		return newUnmarshalTextDecoder(runtime.PtrTo(typ), structName, fieldName), nil
 	}
 	if typ.Kind() == reflect.String {
 		return newStringDecoder(structName, fieldName), nil
 	}
-	dec, err := compile(typ, structName, fieldName, structTypeToDecoder)
+	dec, err := compile(xopt, typ, structName, fieldName, structTypeToDecoder)
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +181,8 @@ func compileMapKey(typ *runtime.Type, structName, fieldName string, structTypeTo
 	}
 }
 
-func compilePtr(typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
-	dec, err := compile(typ.Elem(), structName, fieldName, structTypeToDecoder)
+func compilePtr(xopt *Option, typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+	dec, err := compile(xopt, typ.Elem(), structName, fieldName, structTypeToDecoder)
 	if err != nil {
 		return nil, err
 	}
@@ -278,30 +278,30 @@ func compileBytes(typ *runtime.Type, structName, fieldName string) (Decoder, err
 	return newBytesDecoder(typ, structName, fieldName), nil
 }
 
-func compileSlice(typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+func compileSlice(xopt *Option, typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
 	elem := typ.Elem()
-	decoder, err := compile(elem, structName, fieldName, structTypeToDecoder)
+	decoder, err := compile(xopt, elem, structName, fieldName, structTypeToDecoder)
 	if err != nil {
 		return nil, err
 	}
 	return newSliceDecoder(decoder, elem, elem.Size(), structName, fieldName), nil
 }
 
-func compileArray(typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+func compileArray(xopt *Option, typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
 	elem := typ.Elem()
-	decoder, err := compile(elem, structName, fieldName, structTypeToDecoder)
+	decoder, err := compile(xopt, elem, structName, fieldName, structTypeToDecoder)
 	if err != nil {
 		return nil, err
 	}
 	return newArrayDecoder(decoder, elem, typ.Len(), structName, fieldName), nil
 }
 
-func compileMap(typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
-	keyDec, err := compileMapKey(typ.Key(), structName, fieldName, structTypeToDecoder)
+func compileMap(xopt *Option, typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+	keyDec, err := compileMapKey(xopt, typ.Key(), structName, fieldName, structTypeToDecoder)
 	if err != nil {
 		return nil, err
 	}
-	valueDec, err := compile(typ.Elem(), structName, fieldName, structTypeToDecoder)
+	valueDec, err := compile(xopt, typ.Elem(), structName, fieldName, structTypeToDecoder)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func compileFunc(typ *runtime.Type, strutName, fieldName string) (Decoder, error
 	return newFuncDecoder(typ, strutName, fieldName), nil
 }
 
-func typeToStructTags(typ *runtime.Type) runtime.StructTags {
+func typeToStructTags(xopt *Option, typ *runtime.Type) runtime.StructTags {
 	tags := runtime.StructTags{}
 	fieldNum := typ.NumField()
 	for i := 0; i < fieldNum; i++ {
@@ -324,12 +324,12 @@ func typeToStructTags(typ *runtime.Type) runtime.StructTags {
 		if runtime.IsIgnoredStructField(field) {
 			continue
 		}
-		tags = append(tags, runtime.StructTagFromField(field))
+		tags = append(tags, runtime.StructTagFromField(field, nil, GetOptionFlag(xopt)))
 	}
 	return tags
 }
 
-func compileStruct(typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
+func compileStruct(xopt *Option, typ *runtime.Type, structName, fieldName string, structTypeToDecoder map[uintptr]Decoder) (Decoder, error) {
 	fieldNum := typ.NumField()
 	fieldMap := map[string]*structFieldSet{}
 	typeptr := uintptr(unsafe.Pointer(typ))
@@ -339,7 +339,7 @@ func compileStruct(typ *runtime.Type, structName, fieldName string, structTypeTo
 	structDec := newStructDecoder(structName, fieldName, fieldMap)
 	structTypeToDecoder[typeptr] = structDec
 	structName = typ.Name()
-	tags := typeToStructTags(typ)
+	tags := typeToStructTags(xopt, typ)
 	allFields := []*structFieldSet{}
 	for i := 0; i < fieldNum; i++ {
 		field := typ.Field(i)
@@ -347,8 +347,8 @@ func compileStruct(typ *runtime.Type, structName, fieldName string, structTypeTo
 			continue
 		}
 		isUnexportedField := unicode.IsLower([]rune(field.Name)[0])
-		tag := runtime.StructTagFromField(field)
-		dec, err := compile(runtime.Type2RType(field.Type), structName, field.Name, structTypeToDecoder)
+		tag := runtime.StructTagFromField(field, nil, GetOptionFlag(xopt))
+		dec, err := compile(xopt, runtime.Type2RType(field.Type), structName, field.Name, structTypeToDecoder)
 		if err != nil {
 			return nil, err
 		}

@@ -127,7 +127,7 @@ func decodeStreamUnmarshalerContext(s *Stream, depth int64, unmarshaler unmarsha
 	dst := make([]byte, len(src))
 	copy(dst, src)
 
-	if err := unmarshaler.UnmarshalJSON(s.Option.Context, dst); err != nil {
+	if err := unmarshaler.UnmarshalJSONCtx(s.Option.Context, dst); err != nil {
 		return err
 	}
 	return nil
@@ -161,7 +161,7 @@ func decodeUnmarshalerContext(ctx *RuntimeContext, buf []byte, cursor, depth int
 	dst := make([]byte, len(src))
 	copy(dst, src)
 
-	if err := unmarshaler.UnmarshalJSON(ctx.Option.Context, dst); err != nil {
+	if err := unmarshaler.UnmarshalJSONCtx(ctx.Option.Context, dst); err != nil {
 		return 0, err
 	}
 	return end, nil
@@ -328,7 +328,7 @@ func (d *interfaceDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Pointer
 		*(*any)(p) = nil
 		return nil
 	}
-	decoder, err := CompileToGetDecoder(typ)
+	decoder, err := CompileToGetDecoder(s.Option, typ)
 	if err != nil {
 		return err
 	}
@@ -393,7 +393,7 @@ func (d *interfaceDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p un
 		**(**any)(unsafe.Pointer(&p)) = nil
 		return cursor, nil
 	}
-	decoder, err := CompileToGetDecoder(typ)
+	decoder, err := CompileToGetDecoder(ctx.Option, typ)
 	if err != nil {
 		return 0, err
 	}

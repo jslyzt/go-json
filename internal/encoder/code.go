@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"unsafe"
 
+	eopt "github.com/jslyzt/go-json/internal/option/encode"
 	"github.com/jslyzt/go-json/internal/runtime"
 )
 
@@ -712,7 +713,7 @@ func (c *StructFieldCode) addStructEndCode(ctx *compileContext, codes Opcodes) O
 
 func (c *StructFieldCode) structKey(ctx *compileContext) string {
 	if ctx.escapeKey {
-		rctx := &RuntimeContext{Option: &Option{Flag: HTMLEscapeOption}}
+		rctx := &RuntimeContext{Option: &Option{Flag: eopt.HTMLEscapeOption}}
 		return fmt.Sprintf(`%s:`, string(AppendString(rctx, []byte{}, c.key)))
 	}
 	return fmt.Sprintf(`"%s":`, c.key)

@@ -4,6 +4,9 @@ import (
 	"reflect"
 	"strings"
 	"unicode"
+
+	"github.com/jslyzt/go-json/internal/option/decode"
+	"github.com/jslyzt/go-json/internal/option/encode"
 )
 
 func getTag(field reflect.StructField) string {
@@ -65,11 +68,13 @@ func isValidTag(s string) bool {
 	return true
 }
 
-func StructTagFromField(field reflect.StructField) *StructTag {
-	keyName := field.Name
-	tag := getTag(field)
-	st := &StructTag{Field: field}
-	opts := strings.Split(tag, ",")
+func StructTagFromField(field reflect.StructField, eflag *encode.OptionFlag, dflag *decode.OptionFlag) *StructTag {
+	var (
+		keyName = field.Name
+		st      = &StructTag{Field: field}
+		opts    = strings.Split(getTag(field), ",")
+	)
+
 	if len(opts) > 0 {
 		if opts[0] != "" && isValidTag(opts[0]) {
 			keyName = opts[0]
@@ -77,6 +82,7 @@ func StructTagFromField(field reflect.StructField) *StructTag {
 		}
 	}
 	st.Key = keyName
+
 	if len(opts) > 1 {
 		for _, opt := range opts[1:] {
 			switch opt {
@@ -86,6 +92,21 @@ func StructTagFromField(field reflect.StructField) *StructTag {
 				st.IsString = true
 			}
 		}
+	}
+
+	if !st.IsString {
+		kind := field.Type.Kind()
+		if (kind == reflect.Int64 || kind == reflect.Uint64) &&
+			((eflag != nil && (encode.Int64ToStringOption&(*eflag)) != 0) ||
+				(dflag != nil && (decode.Int64ToStringOption&(*dflag)) != 0)) {
+			st.IsString = true
+		}
+	}
+
+	if st.IsOmitEmpty &&
+		((eflag != nil && (encode.FieldNoOmitEmpty&(*eflag)) != 0) ||
+			(dflag != nil && (decode.FieldNoOmitEmpty&(*dflag)) != 0)) {
+		st.IsOmitEmpty = false
 	}
 	return st
 }

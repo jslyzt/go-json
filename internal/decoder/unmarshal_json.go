@@ -7,6 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/jslyzt/go-json/internal/errors"
+	"github.com/jslyzt/go-json/internal/option/decode"
 	"github.com/jslyzt/go-json/internal/runtime"
 )
 
@@ -51,12 +52,12 @@ func (d *unmarshalJSONDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Poi
 	switch v := v.(type) {
 	case unmarshalerContext:
 		var ctx context.Context
-		if (s.Option.Flags & ContextOption) != 0 {
+		if (s.Option.Flags & decode.ContextOption) != 0 {
 			ctx = s.Option.Context
 		} else {
 			ctx = context.Background()
 		}
-		if err := v.UnmarshalJSON(ctx, dst); err != nil {
+		if err := v.UnmarshalJSONCtx(ctx, dst); err != nil {
 			d.annotateError(s.cursor, err)
 			return err
 		}
@@ -85,8 +86,8 @@ func (d *unmarshalJSONDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, 
 		typ: d.typ,
 		ptr: p,
 	}))
-	if (ctx.Option.Flags & ContextOption) != 0 {
-		if err := v.(unmarshalerContext).UnmarshalJSON(ctx.Option.Context, dst); err != nil {
+	if (ctx.Option.Flags & decode.ContextOption) != 0 {
+		if err := v.(unmarshalerContext).UnmarshalJSONCtx(ctx.Option.Context, dst); err != nil {
 			d.annotateError(cursor, err)
 			return 0, err
 		}

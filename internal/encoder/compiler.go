@@ -10,11 +10,12 @@ import (
 	"unsafe"
 
 	"github.com/jslyzt/go-json/internal/errors"
+	eopt "github.com/jslyzt/go-json/internal/option/encode"
 	"github.com/jslyzt/go-json/internal/runtime"
 )
 
 type marshalerContext interface {
-	MarshalJSON(context.Context) ([]byte, error)
+	MarshalJSONCtx(context.Context) ([]byte, error)
 }
 
 var (
@@ -54,12 +55,12 @@ func storeOpcodeSet(typ uintptr, set *OpcodeSet, m map[uintptr]*OpcodeSet) {
 	atomic.StorePointer(&cachedOpcodeMap, *(*unsafe.Pointer)(unsafe.Pointer(&newOpcodeMap)))
 }
 
-func compileToGetCodeSetSlowPath(typeptr uintptr) (*OpcodeSet, error) {
+func compileToGetCodeSetSlowPath(xopt *Option, typeptr uintptr) (*OpcodeSet, error) {
 	opcodeMap := loadOpcodeMap()
 	if codeSet, exists := opcodeMap[typeptr]; exists {
 		return codeSet, nil
 	}
-	codeSet, err := newCompiler().compile(typeptr)
+	codeSet, err := newCompiler().compile(xopt, typeptr)
 	if err != nil {
 		return nil, err
 	}
@@ -68,14 +69,14 @@ func compileToGetCodeSetSlowPath(typeptr uintptr) (*OpcodeSet, error) {
 }
 
 func getFilteredCodeSetIfNeeded(ctx *RuntimeContext, codeSet *OpcodeSet) (*OpcodeSet, error) {
-	if (ctx.Option.Flag & ContextOption) == 0 {
+	if (ctx.Option.Flag & eopt.ContextOption) == 0 {
 		return codeSet, nil
 	}
 	query := FieldQueryFromContext(ctx.Option.Context)
 	if query == nil {
 		return codeSet, nil
 	}
-	ctx.Option.Flag |= FieldQueryOption
+	ctx.Option.Flag |= eopt.FieldQueryOption
 	cacheCodeSet := codeSet.getQueryCache(query.Hash())
 	if cacheCodeSet != nil {
 		return cacheCodeSet, nil
@@ -98,10 +99,10 @@ func newCompiler() *Compiler {
 	}
 }
 
-func (c *Compiler) compile(typeptr uintptr) (*OpcodeSet, error) {
+func (c *Compiler) compile(xopt *Option, typeptr uintptr) (*OpcodeSet, error) {
 	// noescape trick for header.typ ( reflect.*rtype )
 	typ := *(**runtime.Type)(unsafe.Pointer(&typeptr))
-	code, err := c.typeToCode(typ)
+	code, err := c.typeToCode(xopt, typ)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +142,7 @@ func (c *Compiler) codeToOpcodeSet(typ *runtime.Type, code Code) (*OpcodeSet, er
 	}, nil
 }
 
-func (c *Compiler) typeToCode(typ *runtime.Type) (Code, error) {
+func (c *Compiler) typeToCode(xopt *Option, typ *runtime.Type) (Code, error) {
 	switch {
 	case c.implementsMarshalJSON(typ):
 		return c.marshalJSONCode(typ)
@@ -170,14 +171,14 @@ func (c *Compiler) typeToCode(typ *runtime.Type) (Code, error) {
 				return c.bytesCode(typ, isPtr)
 			}
 		}
-		return c.sliceCode(typ)
+		return c.sliceCode(xopt, typ)
 	case reflect.Map:
 		if isPtr {
-			return c.ptrCode(runtime.PtrTo(typ))
+			return c.ptrCode(xopt, runtime.PtrTo(typ))
 		}
-		return c.mapCode(typ)
+		return c.mapCode(xopt, typ)
 	case reflect.Struct:
-		return c.structCode(typ, isPtr)
+		return c.structCode(xopt, typ, isPtr)
 	case reflect.Int:
 		return c.intCode(typ, isPtr)
 	case reflect.Int8:
@@ -212,11 +213,11 @@ func (c *Compiler) typeToCode(typ *runtime.Type) (Code, error) {
 		if isPtr && typ.Implements(marshalTextType) {
 			typ = orgType
 		}
-		return c.typeToCodeWithPtr(typ, isPtr)
+		return c.typeToCodeWithPtr(xopt, typ, isPtr)
 	}
 }
 
-func (c *Compiler) typeToCodeWithPtr(typ *runtime.Type, isPtr bool) (Code, error) {
+func (c *Compiler) typeToCodeWithPtr(xopt *Option, typ *runtime.Type, isPtr bool) (Code, error) {
 	switch {
 	case c.implementsMarshalJSON(typ):
 		return c.marshalJSONCode(typ)
@@ -225,7 +226,7 @@ func (c *Compiler) typeToCodeWithPtr(typ *runtime.Type, isPtr bool) (Code, error
 	}
 	switch typ.Kind() {
 	case reflect.Ptr:
-		return c.ptrCode(typ)
+		return c.ptrCode(xopt, typ)
 	case reflect.Slice:
 		elem := typ.Elem()
 		if elem.Kind() == reflect.Uint8 {
@@ -234,13 +235,13 @@ func (c *Compiler) typeToCodeWithPtr(typ *runtime.Type, isPtr bool) (Code, error
 				return c.bytesCode(typ, false)
 			}
 		}
-		return c.sliceCode(typ)
+		return c.sliceCode(xopt, typ)
 	case reflect.Array:
-		return c.arrayCode(typ)
+		return c.arrayCode(xopt, typ)
 	case reflect.Map:
-		return c.mapCode(typ)
+		return c.mapCode(xopt, typ)
 	case reflect.Struct:
-		return c.structCode(typ, isPtr)
+		return c.structCode(xopt, typ, isPtr)
 	case reflect.Interface:
 		return c.interfaceCode(typ, false)
 	case reflect.Int:
@@ -428,8 +429,8 @@ func (c *Compiler) marshalTextCode(typ *runtime.Type) (*MarshalTextCode, error) 
 	}, nil
 }
 
-func (c *Compiler) ptrCode(typ *runtime.Type) (*PtrCode, error) {
-	code, err := c.typeToCodeWithPtr(typ.Elem(), true)
+func (c *Compiler) ptrCode(xopt *Option, typ *runtime.Type) (*PtrCode, error) {
+	code, err := c.typeToCodeWithPtr(xopt, typ.Elem(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -440,9 +441,9 @@ func (c *Compiler) ptrCode(typ *runtime.Type) (*PtrCode, error) {
 	return &PtrCode{typ: typ, value: code, ptrNum: 1}, nil
 }
 
-func (c *Compiler) sliceCode(typ *runtime.Type) (*SliceCode, error) {
+func (c *Compiler) sliceCode(xopt *Option, typ *runtime.Type) (*SliceCode, error) {
 	elem := typ.Elem()
-	code, err := c.listElemCode(elem)
+	code, err := c.listElemCode(xopt, elem)
 	if err != nil {
 		return nil, err
 	}
@@ -453,9 +454,9 @@ func (c *Compiler) sliceCode(typ *runtime.Type) (*SliceCode, error) {
 	return &SliceCode{typ: typ, value: code}, nil
 }
 
-func (c *Compiler) arrayCode(typ *runtime.Type) (*ArrayCode, error) {
+func (c *Compiler) arrayCode(xopt *Option, typ *runtime.Type) (*ArrayCode, error) {
 	elem := typ.Elem()
-	code, err := c.listElemCode(elem)
+	code, err := c.listElemCode(xopt, elem)
 	if err != nil {
 		return nil, err
 	}
@@ -466,12 +467,12 @@ func (c *Compiler) arrayCode(typ *runtime.Type) (*ArrayCode, error) {
 	return &ArrayCode{typ: typ, value: code}, nil
 }
 
-func (c *Compiler) mapCode(typ *runtime.Type) (*MapCode, error) {
-	keyCode, err := c.mapKeyCode(typ.Key())
+func (c *Compiler) mapCode(xopt *Option, typ *runtime.Type) (*MapCode, error) {
+	keyCode, err := c.mapKeyCode(xopt, typ.Key())
 	if err != nil {
 		return nil, err
 	}
-	valueCode, err := c.mapValueCode(typ.Elem())
+	valueCode, err := c.mapValueCode(xopt, typ.Elem())
 	if err != nil {
 		return nil, err
 	}
@@ -482,19 +483,19 @@ func (c *Compiler) mapCode(typ *runtime.Type) (*MapCode, error) {
 	return &MapCode{typ: typ, key: keyCode, value: valueCode}, nil
 }
 
-func (c *Compiler) listElemCode(typ *runtime.Type) (Code, error) {
+func (c *Compiler) listElemCode(xopt *Option, typ *runtime.Type) (Code, error) {
 	switch {
 	case c.implementsMarshalJSONType(typ) || c.implementsMarshalJSONType(runtime.PtrTo(typ)):
 		return c.marshalJSONCode(typ)
 	case !typ.Implements(marshalTextType) && runtime.PtrTo(typ).Implements(marshalTextType):
 		return c.marshalTextCode(typ)
 	case typ.Kind() == reflect.Map:
-		return c.ptrCode(runtime.PtrTo(typ))
+		return c.ptrCode(xopt, runtime.PtrTo(typ))
 	default:
 		// isPtr was originally used to indicate whether the type of top level is pointer.
 		// However, since the slice/array element is a specification that can get the pointer address, explicitly set isPtr to true.
 		// See here for related issues: https://github.com/jslyzt/go-json/issues/370
-		code, err := c.typeToCodeWithPtr(typ, true)
+		code, err := c.typeToCodeWithPtr(xopt, typ, true)
 		if err != nil {
 			return nil, err
 		}
@@ -508,14 +509,14 @@ func (c *Compiler) listElemCode(typ *runtime.Type) (Code, error) {
 	}
 }
 
-func (c *Compiler) mapKeyCode(typ *runtime.Type) (Code, error) {
+func (c *Compiler) mapKeyCode(xopt *Option, typ *runtime.Type) (Code, error) {
 	switch {
 	case c.implementsMarshalText(typ):
 		return c.marshalTextCode(typ)
 	}
 	switch typ.Kind() {
 	case reflect.Ptr:
-		return c.ptrCode(typ)
+		return c.ptrCode(xopt, typ)
 	case reflect.String:
 		return c.stringCode(typ, false)
 	case reflect.Int:
@@ -544,12 +545,12 @@ func (c *Compiler) mapKeyCode(typ *runtime.Type) (Code, error) {
 	return nil, &errors.UnsupportedTypeError{Type: runtime.RType2Type(typ)}
 }
 
-func (c *Compiler) mapValueCode(typ *runtime.Type) (Code, error) {
+func (c *Compiler) mapValueCode(xopt *Option, typ *runtime.Type) (Code, error) {
 	switch typ.Kind() {
 	case reflect.Map:
-		return c.ptrCode(runtime.PtrTo(typ))
+		return c.ptrCode(xopt, runtime.PtrTo(typ))
 	default:
-		code, err := c.typeToCodeWithPtr(typ, false)
+		code, err := c.typeToCodeWithPtr(xopt, typ, false)
 		if err != nil {
 			return nil, err
 		}
@@ -563,7 +564,7 @@ func (c *Compiler) mapValueCode(typ *runtime.Type) (Code, error) {
 	}
 }
 
-func (c *Compiler) structCode(typ *runtime.Type, isPtr bool) (*StructCode, error) {
+func (c *Compiler) structCode(xopt *Option, typ *runtime.Type, isPtr bool) (*StructCode, error) {
 	typeptr := uintptr(unsafe.Pointer(typ))
 	if code, exists := c.structTypeToCode[typeptr]; exists {
 		derefCode := *code
@@ -575,11 +576,11 @@ func (c *Compiler) structCode(typ *runtime.Type, isPtr bool) (*StructCode, error
 	c.structTypeToCode[typeptr] = code
 
 	fieldNum := typ.NumField()
-	tags := c.typeToStructTags(typ)
+	tags := c.typeToStructTags(xopt, typ)
 	fields := []*StructFieldCode{}
 	for i, tag := range tags {
 		isOnlyOneFirstField := i == 0 && fieldNum == 1
-		field, err := c.structFieldCode(code, tag, isPtr, isOnlyOneFirstField)
+		field, err := c.structFieldCode(xopt, code, tag, isPtr, isOnlyOneFirstField)
 		if err != nil {
 			return nil, err
 		}
@@ -628,7 +629,7 @@ func toElemType(t *runtime.Type) *runtime.Type {
 	return t
 }
 
-func (c *Compiler) structFieldCode(structCode *StructCode, tag *runtime.StructTag, isPtr, isOnlyOneFirstField bool) (*StructFieldCode, error) {
+func (c *Compiler) structFieldCode(xopt *Option, structCode *StructCode, tag *runtime.StructTag, isPtr, isOnlyOneFirstField bool) (*StructFieldCode, error) {
 	field := tag.Field
 	fieldType := runtime.Type2RType(field.Type)
 	isIndirectSpecialCase := isPtr && isOnlyOneFirstField
@@ -684,7 +685,7 @@ func (c *Compiler) structFieldCode(structCode *StructCode, tag *runtime.StructTa
 		fieldCode.isAddrForMarshaler = true
 		fieldCode.isNilCheck = false
 	default:
-		code, err := c.typeToCodeWithPtr(fieldType, isPtr)
+		code, err := c.typeToCodeWithPtr(xopt, fieldType, isPtr)
 		if err != nil {
 			return nil, err
 		}
@@ -809,7 +810,7 @@ func (c *Compiler) isTaggedKeyOnly(fields []*StructFieldCode) bool {
 	return taggedKeyFieldCount == 1
 }
 
-func (c *Compiler) typeToStructTags(typ *runtime.Type) runtime.StructTags {
+func (c *Compiler) typeToStructTags(xopt *Option, typ *runtime.Type) runtime.StructTags {
 	tags := runtime.StructTags{}
 	fieldNum := typ.NumField()
 	for i := 0; i < fieldNum; i++ {
@@ -817,7 +818,7 @@ func (c *Compiler) typeToStructTags(typ *runtime.Type) runtime.StructTags {
 		if runtime.IsIgnoredStructField(field) {
 			continue
 		}
-		tags = append(tags, runtime.StructTagFromField(field))
+		tags = append(tags, runtime.StructTagFromField(field, GetOptionFlag(xopt), nil))
 	}
 	return tags
 }

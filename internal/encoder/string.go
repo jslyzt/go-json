@@ -28,6 +28,8 @@ import (
 	"math/bits"
 	"reflect"
 	"unsafe"
+
+	eopt "github.com/jslyzt/go-json/internal/option/encode"
 )
 
 const (
@@ -47,13 +49,13 @@ func stringToUint64Slice(s string) []uint64 {
 }
 
 func AppendString(ctx *RuntimeContext, buf []byte, s string) []byte {
-	if ctx.Option.Flag&HTMLEscapeOption != 0 {
-		if ctx.Option.Flag&NormalizeUTF8Option != 0 {
+	if ctx.Option.Flag&eopt.HTMLEscapeOption != 0 {
+		if ctx.Option.Flag&eopt.NormalizeUTF8Option != 0 {
 			return appendNormalizedHTMLString(buf, s)
 		}
 		return appendHTMLString(buf, s)
 	}
-	if ctx.Option.Flag&NormalizeUTF8Option != 0 {
+	if ctx.Option.Flag&eopt.NormalizeUTF8Option != 0 {
 		return appendNormalizedString(buf, s)
 	}
 	return appendString(buf, s)

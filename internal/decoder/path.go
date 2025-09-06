@@ -326,11 +326,11 @@ func (p *Path) Field(sel string) (PathNode, bool, error) {
 	return p.node.Field(sel)
 }
 
-func (p *Path) Get(src, dst reflect.Value) error {
+func (p *Path) Get(xopt *Option, src, dst reflect.Value) error {
 	if p.node == nil {
 		return nil
 	}
-	return p.node.Get(src, dst)
+	return p.node.Get(xopt, src, dst)
 }
 
 func (p *Path) String() string {
@@ -344,7 +344,7 @@ type PathNode interface {
 	fmt.Stringer
 	Index(idx int) (PathNode, bool, error)
 	Field(fieldName string) (PathNode, bool, error)
-	Get(src, dst reflect.Value) error
+	Get(xopt *Option, src, dst reflect.Value) error
 	chain(PathNode) PathNode
 	target() bool
 	single() bool
@@ -390,7 +390,7 @@ func (n *PathSelectorNode) Field(fieldName string) (PathNode, bool, error) {
 	return nil, false, nil
 }
 
-func (n *PathSelectorNode) Get(src, dst reflect.Value) error {
+func (n *PathSelectorNode) Get(xopt *Option, src, dst reflect.Value) error {
 	switch src.Type().Kind() {
 	case reflect.Map:
 		iter := src.MapRange()
@@ -405,7 +405,7 @@ func (n *PathSelectorNode) Get(src, dst reflect.Value) error {
 			}
 			if found {
 				if child != nil {
-					return child.Get(iter.Value(), dst)
+					return child.Get(xopt, iter.Value(), dst)
 				}
 				return AssignValue(iter.Value(), dst)
 			}
@@ -413,22 +413,22 @@ func (n *PathSelectorNode) Get(src, dst reflect.Value) error {
 	case reflect.Struct:
 		typ := src.Type()
 		for i := 0; i < typ.Len(); i++ {
-			tag := runtime.StructTagFromField(typ.Field(i))
+			tag := runtime.StructTagFromField(typ.Field(i), nil, GetOptionFlag(xopt))
 			child, found, err := n.Field(tag.Key)
 			if err != nil {
 				return err
 			}
 			if found {
 				if child != nil {
-					return child.Get(src.Field(i), dst)
+					return child.Get(xopt, src.Field(i), dst)
 				}
 				return AssignValue(src.Field(i), dst)
 			}
 		}
 	case reflect.Ptr:
-		return n.Get(src.Elem(), dst)
+		return n.Get(xopt, src.Elem(), dst)
 	case reflect.Interface:
-		return n.Get(reflect.ValueOf(src.Interface()), dst)
+		return n.Get(xopt, reflect.ValueOf(src.Interface()), dst)
 	case reflect.Float64, reflect.String, reflect.Bool:
 		return AssignValue(src, dst)
 	}
@@ -466,19 +466,19 @@ func (n *PathIndexNode) Field(fieldName string) (PathNode, bool, error) {
 	return nil, false, &errors.PathError{}
 }
 
-func (n *PathIndexNode) Get(src, dst reflect.Value) error {
+func (n *PathIndexNode) Get(xopt *Option, src, dst reflect.Value) error {
 	switch src.Type().Kind() {
 	case reflect.Array, reflect.Slice:
 		if src.Len() > n.selector {
 			if n.child != nil {
-				return n.child.Get(src.Index(n.selector), dst)
+				return n.child.Get(xopt, src.Index(n.selector), dst)
 			}
 			return AssignValue(src.Index(n.selector), dst)
 		}
 	case reflect.Ptr:
-		return n.Get(src.Elem(), dst)
+		return n.Get(xopt, src.Elem(), dst)
 	case reflect.Interface:
-		return n.Get(reflect.ValueOf(src.Interface()), dst)
+		return n.Get(xopt, reflect.ValueOf(src.Interface()), dst)
 	}
 	return fmt.Errorf("failed to get [%d] value from %s", n.selector, src.Type())
 }
@@ -509,7 +509,7 @@ func (n *PathIndexAllNode) Field(fieldName string) (PathNode, bool, error) {
 	return nil, false, &errors.PathError{}
 }
 
-func (n *PathIndexAllNode) Get(src, dst reflect.Value) error {
+func (n *PathIndexAllNode) Get(xopt *Option, src, dst reflect.Value) error {
 	switch src.Type().Kind() {
 	case reflect.Array, reflect.Slice:
 		var arr []any
@@ -517,7 +517,7 @@ func (n *PathIndexAllNode) Get(src, dst reflect.Value) error {
 			var v any
 			rv := reflect.ValueOf(&v)
 			if n.child != nil {
-				if err := n.child.Get(src.Index(i), rv); err != nil {
+				if err := n.child.Get(xopt, src.Index(i), rv); err != nil {
 					return err
 				}
 			} else {
@@ -532,9 +532,9 @@ func (n *PathIndexAllNode) Get(src, dst reflect.Value) error {
 		}
 		return nil
 	case reflect.Ptr:
-		return n.Get(src.Elem(), dst)
+		return n.Get(xopt, src.Elem(), dst)
 	case reflect.Interface:
-		return n.Get(reflect.ValueOf(src.Interface()), dst)
+		return n.Get(xopt, reflect.ValueOf(src.Interface()), dst)
 	}
 	return fmt.Errorf("failed to get all value from %s", src.Type())
 }
@@ -585,7 +585,7 @@ func valueToSliceValue(v any) []any {
 	return []any{v}
 }
 
-func (n *PathRecursiveNode) Get(src, dst reflect.Value) error {
+func (n *PathRecursiveNode) Get(xopt *Option, src, dst reflect.Value) error {
 	if n.child == nil {
 		return fmt.Errorf("failed to get by recursive path ..%s", n.selector)
 	}
@@ -605,12 +605,12 @@ func (n *PathRecursiveNode) Get(src, dst reflect.Value) error {
 			if found {
 				var v any
 				rv := reflect.ValueOf(&v)
-				_ = child.Get(iter.Value(), rv)
+				_ = child.Get(xopt, iter.Value(), rv)
 				arr = append(arr, valueToSliceValue(v)...)
 			} else {
 				var v any
 				rv := reflect.ValueOf(&v)
-				_ = n.Get(iter.Value(), rv)
+				_ = n.Get(xopt, iter.Value(), rv)
 				if v != nil {
 					arr = append(arr, valueToSliceValue(v)...)
 				}
@@ -621,7 +621,7 @@ func (n *PathRecursiveNode) Get(src, dst reflect.Value) error {
 	case reflect.Struct:
 		typ := src.Type()
 		for i := 0; i < typ.Len(); i++ {
-			tag := runtime.StructTagFromField(typ.Field(i))
+			tag := runtime.StructTagFromField(typ.Field(i), nil, GetOptionFlag(xopt))
 			child, found, err := n.Field(tag.Key)
 			if err != nil {
 				return err
@@ -629,12 +629,12 @@ func (n *PathRecursiveNode) Get(src, dst reflect.Value) error {
 			if found {
 				var v any
 				rv := reflect.ValueOf(&v)
-				_ = child.Get(src.Field(i), rv)
+				_ = child.Get(xopt, src.Field(i), rv)
 				arr = append(arr, valueToSliceValue(v)...)
 			} else {
 				var v any
 				rv := reflect.ValueOf(&v)
-				_ = n.Get(src.Field(i), rv)
+				_ = n.Get(xopt, src.Field(i), rv)
 				if v != nil {
 					arr = append(arr, valueToSliceValue(v)...)
 				}
@@ -646,7 +646,7 @@ func (n *PathRecursiveNode) Get(src, dst reflect.Value) error {
 		for i := 0; i < src.Len(); i++ {
 			var v any
 			rv := reflect.ValueOf(&v)
-			_ = n.Get(src.Index(i), rv)
+			_ = n.Get(xopt, src.Index(i), rv)
 			if v != nil {
 				arr = append(arr, valueToSliceValue(v)...)
 			}
@@ -654,9 +654,9 @@ func (n *PathRecursiveNode) Get(src, dst reflect.Value) error {
 		_ = AssignValue(reflect.ValueOf(arr), dst)
 		return nil
 	case reflect.Ptr:
-		return n.Get(src.Elem(), dst)
+		return n.Get(xopt, src.Elem(), dst)
 	case reflect.Interface:
-		return n.Get(reflect.ValueOf(src.Interface()), dst)
+		return n.Get(xopt, reflect.ValueOf(src.Interface()), dst)
 	}
 	return fmt.Errorf("failed to get %s value from %s", n.selector, src.Type())
 }

@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/jslyzt/go-json/internal/errors"
+	dopt "github.com/jslyzt/go-json/internal/option/decode"
 )
 
 type structFieldSet struct {
@@ -687,7 +688,7 @@ func (d *structDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Pointer) e
 		seenFields   map[int]struct{}
 		seenFieldNum int
 	)
-	firstWin := (s.Option.Flags & FirstWinOption) != 0
+	firstWin := (s.Option.Flags & dopt.FirstWinOption) != 0
 	if firstWin {
 		seenFields = make(map[int]struct{}, d.fieldUniqueNameNum)
 	}
@@ -774,7 +775,7 @@ func (d *structDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsaf
 		seenFields   map[int]struct{}
 		seenFieldNum int
 	)
-	firstWin := (ctx.Option.Flags & FirstWinOption) != 0
+	firstWin := (ctx.Option.Flags & dopt.FirstWinOption) != 0
 	if firstWin {
 		seenFields = make(map[int]struct{}, d.fieldUniqueNameNum)
 	}

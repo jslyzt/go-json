@@ -9,11 +9,11 @@ import (
 	"github.com/jslyzt/go-json/internal/runtime"
 )
 
-func CompileToGetDecoder(typ *runtime.Type) (Decoder, error) {
+func CompileToGetDecoder(xopt *Option, typ *runtime.Type) (Decoder, error) {
 	initDecoder()
 	typeptr := uintptr(unsafe.Pointer(typ))
 	if typeptr > typeAddr.MaxTypeAddr {
-		return compileToGetDecoderSlowPath(typeptr, typ)
+		return compileToGetDecoderSlowPath(xopt, typeptr, typ)
 	}
 
 	index := (typeptr - typeAddr.BaseTypeAddr) >> typeAddr.AddrShift
@@ -21,7 +21,7 @@ func CompileToGetDecoder(typ *runtime.Type) (Decoder, error) {
 		return dec, nil
 	}
 
-	dec, err := compileHead(typ, map[uintptr]Decoder{})
+	dec, err := compileHead(xopt, typ, map[uintptr]Decoder{})
 	if err != nil {
 		return nil, err
 	}

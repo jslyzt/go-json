@@ -5,10 +5,10 @@ import (
 	stdjson "encoding/json"
 	"math"
 	"math/rand"
-	"reflect"
 	"testing"
 
 	"github.com/jslyzt/go-json"
+	"github.com/smartystreets/goconvey/convey"
 )
 
 var validTests = []struct {
@@ -258,14 +258,18 @@ var indentErrorTests = []indentErrorTest{
 }
 
 func TestIndentErrors(t *testing.T) {
-	for i, tt := range indentErrorTests {
+	for _, tt := range indentErrorTests {
 		slice := make([]uint8, 0)
 		buf := bytes.NewBuffer(slice)
 		if err := json.Indent(buf, []uint8(tt.in), "", ""); err != nil {
-			if !reflect.DeepEqual(err, tt.err) {
-				t.Errorf("#%d: Indent: expected %#v but got %#v", i, tt.err, err)
-				continue
-			}
+
+			convey.ShouldEqual(err, tt.err)
+			/*
+				if !reflect.DeepEqual(err, tt.err) {
+					t.Errorf("#%d: Indent: expected %#v but got %#v", i, tt.err, err)
+					continue
+				}
+			*/
 		}
 	}
 }

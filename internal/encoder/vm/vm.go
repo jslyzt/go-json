@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/jslyzt/go-json/internal/encoder"
+	eopt "github.com/jslyzt/go-json/internal/option/encode"
 	"github.com/jslyzt/go-json/internal/runtime"
 )
 
@@ -16,7 +17,7 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 	ptrOffset := uintptr(0)
 	ctxptr := ctx.Ptr()
 	var code *encoder.Opcode
-	if (ctx.Option.Flag & encoder.HTMLEscapeOption) != 0 {
+	if (ctx.Option.Flag & eopt.HTMLEscapeOption) != 0 {
 		code = codeSet.EscapeKeyCode
 	} else {
 		code = codeSet.NoescapeKeyCode
@@ -212,7 +213,7 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			nextTotalLength := uintptr(ifaceCodeSet.CodeLength) + 3
 
 			var c *encoder.Opcode
-			if (ctx.Option.Flag & encoder.HTMLEscapeOption) != 0 {
+			if (ctx.Option.Flag & eopt.HTMLEscapeOption) != 0 {
 				c = ifaceCodeSet.InterfaceEscapeKeyCode
 			} else {
 				c = ifaceCodeSet.InterfaceNoescapeKeyCode
@@ -406,7 +407,7 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 				break
 			}
 			b = appendStructHead(ctx, b)
-			unorderedMap := (ctx.Option.Flag & encoder.UnorderedMapOption) != 0
+			unorderedMap := (ctx.Option.Flag & eopt.UnorderedMapOption) != 0
 			mapCtx := encoder.NewMapContext(mlen, unorderedMap)
 			mapiterinit(code.Type, uptr, &mapCtx.Iter)
 			store(ctxptr, code.Idx, uintptr(unsafe.Pointer(mapCtx)))
@@ -424,7 +425,7 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			mapCtx := (*encoder.MapContext)(ptrToUnsafePtr(load(ctxptr, code.Idx)))
 			idx := mapCtx.Idx
 			idx++
-			if (ctx.Option.Flag & encoder.UnorderedMapOption) != 0 {
+			if (ctx.Option.Flag & eopt.UnorderedMapOption) != 0 {
 				if idx < mapCtx.Len {
 					b = appendMapKeyIndent(ctx, code, b)
 					mapCtx.Idx = int(idx)
@@ -437,7 +438,7 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 					code = code.End.Next
 				}
 			} else {
-				mapCtx.Slice.Items[mapCtx.Idx].Value = b[mapCtx.Start:len(b)]
+				mapCtx.Slice.Items[mapCtx.Idx].Value = b[mapCtx.Start:]
 				if idx < mapCtx.Len {
 					mapCtx.Idx = int(idx)
 					mapCtx.Start = len(b)
@@ -450,10 +451,10 @@ func Run(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]b
 			}
 		case encoder.OpMapValue:
 			mapCtx := (*encoder.MapContext)(ptrToUnsafePtr(load(ctxptr, code.Idx)))
-			if (ctx.Option.Flag & encoder.UnorderedMapOption) != 0 {
+			if (ctx.Option.Flag & eopt.UnorderedMapOption) != 0 {
 				b = appendColon(ctx, b)
 			} else {
-				mapCtx.Slice.Items[mapCtx.Idx].Key = b[mapCtx.Start:len(b)]
+				mapCtx.Slice.Items[mapCtx.Idx].Key = b[mapCtx.Start:]
 				mapCtx.Start = len(b)
 			}
 			value := mapitervalue(&mapCtx.Iter)

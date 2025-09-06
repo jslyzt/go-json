@@ -9,6 +9,7 @@ import (
 
 	"github.com/jslyzt/go-json/internal/decoder"
 	"github.com/jslyzt/go-json/internal/errors"
+	"github.com/jslyzt/go-json/internal/option/decode"
 	"github.com/jslyzt/go-json/internal/runtime"
 )
 
@@ -34,16 +35,18 @@ func unmarshal(data []byte, v any, optFuncs ...DecodeOptionFunc) error {
 	if err := validateType(header.typ, uintptr(header.ptr)); err != nil {
 		return err
 	}
-	dec, err := decoder.CompileToGetDecoder(header.typ)
-	if err != nil {
-		return err
-	}
+
 	ctx := decoder.TakeRuntimeContext()
 	ctx.Buf = src
 	ctx.Option.Flags = 0
 	for _, optFunc := range optFuncs {
 		optFunc(ctx.Option)
 	}
+	dec, err := decoder.CompileToGetDecoder(ctx.Option, header.typ)
+	if err != nil {
+		return err
+	}
+
 	cursor, err := dec.Decode(ctx, 0, 0, header.ptr)
 	if err != nil {
 		decoder.ReleaseRuntimeContext(ctx)
@@ -62,18 +65,20 @@ func unmarshalContext(ctx context.Context, data []byte, v any, optFuncs ...Decod
 	if err := validateType(header.typ, uintptr(header.ptr)); err != nil {
 		return err
 	}
-	dec, err := decoder.CompileToGetDecoder(header.typ)
-	if err != nil {
-		return err
-	}
+
 	rctx := decoder.TakeRuntimeContext()
 	rctx.Buf = src
 	rctx.Option.Flags = 0
-	rctx.Option.Flags |= decoder.ContextOption
+	rctx.Option.Flags |= decode.ContextOption
 	rctx.Option.Context = ctx
 	for _, optFunc := range optFuncs {
 		optFunc(rctx.Option)
 	}
+	dec, err := decoder.CompileToGetDecoder(rctx.Option, header.typ)
+	if err != nil {
+		return err
+	}
+
 	cursor, err := dec.Decode(rctx, 0, 0, header.ptr)
 	if err != nil {
 		decoder.ReleaseRuntimeContext(rctx)
@@ -97,7 +102,7 @@ func extractFromPath(path *Path, data []byte, optFuncs ...DecodeOptionFunc) ([][
 	ctx := decoder.TakeRuntimeContext()
 	ctx.Buf = src
 	ctx.Option.Flags = 0
-	ctx.Option.Flags |= decoder.PathOption
+	ctx.Option.Flags |= decode.PathOption
 	ctx.Option.Path = path.path
 	for _, optFunc := range optFuncs {
 		optFunc(ctx.Option)
@@ -123,10 +128,6 @@ func unmarshalNoEscape(data []byte, v any, optFuncs ...DecodeOptionFunc) error {
 	if err := validateType(header.typ, uintptr(header.ptr)); err != nil {
 		return err
 	}
-	dec, err := decoder.CompileToGetDecoder(header.typ)
-	if err != nil {
-		return err
-	}
 
 	ctx := decoder.TakeRuntimeContext()
 	ctx.Buf = src
@@ -134,6 +135,11 @@ func unmarshalNoEscape(data []byte, v any, optFuncs ...DecodeOptionFunc) error {
 	for _, optFunc := range optFuncs {
 		optFunc(ctx.Option)
 	}
+	dec, err := decoder.CompileToGetDecoder(ctx.Option, header.typ)
+	if err != nil {
+		return err
+	}
+
 	cursor, err := dec.Decode(ctx, 0, 0, noescape(header.ptr))
 	if err != nil {
 		decoder.ReleaseRuntimeContext(ctx)
@@ -202,7 +208,7 @@ func (d *Decoder) Decode(v any) error {
 // DecodeContext reads the next JSON-encoded value from its
 // input and stores it in the value pointed to by v with context.Context.
 func (d *Decoder) DecodeContext(ctx context.Context, v any) error {
-	d.s.Option.Flags |= decoder.ContextOption
+	d.s.Option.Flags |= decode.ContextOption
 	d.s.Option.Context = ctx
 	return d.DecodeWithOption(v)
 }
@@ -219,16 +225,16 @@ func (d *Decoder) DecodeWithOption(v any, optFuncs ...DecodeOptionFunc) error {
 		return err
 	}
 
-	dec, err := decoder.CompileToGetDecoder(typ)
-	if err != nil {
-		return err
-	}
 	if err := d.s.PrepareForDecode(); err != nil {
 		return err
 	}
 	s := d.s
 	for _, optFunc := range optFuncs {
 		optFunc(s.Option)
+	}
+	dec, err := decoder.CompileToGetDecoder(s.Option, typ)
+	if err != nil {
+		return err
 	}
 	if err := dec.DecodeStream(s, 0, header.ptr); err != nil {
 		return err

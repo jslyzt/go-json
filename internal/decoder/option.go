@@ -1,17 +1,20 @@
 package decoder
 
-import "context"
+import (
+	"context"
 
-type OptionFlags uint8
-
-const (
-	FirstWinOption OptionFlags = 1 << iota
-	ContextOption
-	PathOption
+	"github.com/jslyzt/go-json/internal/option/decode"
 )
 
 type Option struct {
-	Flags   OptionFlags
+	Flags   decode.OptionFlag
 	Context context.Context
 	Path    *Path
+}
+
+func GetOptionFlag(xopt *Option) *decode.OptionFlag {
+	if xopt != nil {
+		return &xopt.Flags
+	}
+	return nil
 }

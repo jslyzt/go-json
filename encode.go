@@ -11,6 +11,7 @@ import (
 	"github.com/jslyzt/go-json/internal/encoder/vm_color"
 	"github.com/jslyzt/go-json/internal/encoder/vm_color_indent"
 	"github.com/jslyzt/go-json/internal/encoder/vm_indent"
+	opt "github.com/jslyzt/go-json/internal/option/encode"
 )
 
 // An Encoder writes JSON values to an output stream.
@@ -49,7 +50,7 @@ func (e *Encoder) EncodeWithOption(v any, optFuncs ...EncodeOptionFunc) error {
 func (e *Encoder) EncodeContext(ctx context.Context, v any, optFuncs ...EncodeOptionFunc) error {
 	rctx := encoder.TakeRuntimeContext()
 	rctx.Option.Flag = 0
-	rctx.Option.Flag |= encoder.ContextOption
+	rctx.Option.Flag |= opt.ContextOption
 	rctx.Option.Context = ctx
 
 	err := e.encodeWithOption(rctx, v, optFuncs...) //nolint: contextcheck
@@ -60,9 +61,9 @@ func (e *Encoder) EncodeContext(ctx context.Context, v any, optFuncs ...EncodeOp
 
 func (e *Encoder) encodeWithOption(ctx *encoder.RuntimeContext, v any, optFuncs ...EncodeOptionFunc) error {
 	if e.enabledHTMLEscape {
-		ctx.Option.Flag |= encoder.HTMLEscapeOption
+		ctx.Option.Flag |= opt.HTMLEscapeOption
 	}
-	ctx.Option.Flag |= encoder.NormalizeUTF8Option
+	ctx.Option.Flag |= opt.NormalizeUTF8Option
 	ctx.Option.DebugOut = os.Stdout
 	for _, optFunc := range optFuncs {
 		optFunc(ctx.Option)
@@ -114,7 +115,7 @@ func (e *Encoder) SetIndent(prefix, indent string) {
 func marshalContext(ctx context.Context, v any, optFuncs ...EncodeOptionFunc) ([]byte, error) {
 	rctx := encoder.TakeRuntimeContext()
 	rctx.Option.Flag = 0
-	rctx.Option.Flag = encoder.HTMLEscapeOption | encoder.NormalizeUTF8Option | encoder.ContextOption
+	rctx.Option.Flag = opt.HTMLEscapeOption | opt.NormalizeUTF8Option | opt.ContextOption
 	rctx.Option.Context = ctx
 	for _, optFunc := range optFuncs {
 		optFunc(rctx.Option)
@@ -142,7 +143,7 @@ func marshal(v any, optFuncs ...EncodeOptionFunc) ([]byte, error) {
 	ctx := encoder.TakeRuntimeContext()
 
 	ctx.Option.Flag = 0
-	ctx.Option.Flag |= (encoder.HTMLEscapeOption | encoder.NormalizeUTF8Option)
+	ctx.Option.Flag |= (opt.HTMLEscapeOption | opt.NormalizeUTF8Option)
 	for _, optFunc := range optFuncs {
 		optFunc(ctx.Option)
 	}
@@ -169,7 +170,7 @@ func marshalNoEscape(v any) ([]byte, error) {
 	ctx := encoder.TakeRuntimeContext()
 
 	ctx.Option.Flag = 0
-	ctx.Option.Flag |= (encoder.HTMLEscapeOption | encoder.NormalizeUTF8Option)
+	ctx.Option.Flag |= (opt.HTMLEscapeOption | opt.NormalizeUTF8Option)
 
 	buf, err := encodeNoEscape(ctx, v)
 	if err != nil {
@@ -193,7 +194,7 @@ func marshalIndent(v any, prefix, indent string, optFuncs ...EncodeOptionFunc) (
 	ctx := encoder.TakeRuntimeContext()
 
 	ctx.Option.Flag = 0
-	ctx.Option.Flag |= (encoder.HTMLEscapeOption | encoder.NormalizeUTF8Option | encoder.IndentOption)
+	ctx.Option.Flag |= (opt.HTMLEscapeOption | opt.NormalizeUTF8Option | opt.IndentOption)
 	for _, optFunc := range optFuncs {
 		optFunc(ctx.Option)
 	}
@@ -298,13 +299,13 @@ func encodeIndent(ctx *encoder.RuntimeContext, v any, prefix, indent string) ([]
 }
 
 func encodeRunCode(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]byte, error) {
-	if (ctx.Option.Flag & encoder.DebugOption) != 0 {
-		if (ctx.Option.Flag & encoder.ColorizeOption) != 0 {
+	if (ctx.Option.Flag & opt.DebugOption) != 0 {
+		if (ctx.Option.Flag & opt.ColorizeOption) != 0 {
 			return vm_color.DebugRun(ctx, b, codeSet)
 		}
 		return vm.DebugRun(ctx, b, codeSet)
 	}
-	if (ctx.Option.Flag & encoder.ColorizeOption) != 0 {
+	if (ctx.Option.Flag & opt.ColorizeOption) != 0 {
 		return vm_color.Run(ctx, b, codeSet)
 	}
 	return vm.Run(ctx, b, codeSet)
@@ -313,13 +314,13 @@ func encodeRunCode(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.Opcod
 func encodeRunIndentCode(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet, prefix, indent string) ([]byte, error) {
 	ctx.Prefix = []byte(prefix)
 	ctx.IndentStr = []byte(indent)
-	if (ctx.Option.Flag & encoder.DebugOption) != 0 {
-		if (ctx.Option.Flag & encoder.ColorizeOption) != 0 {
+	if (ctx.Option.Flag & opt.DebugOption) != 0 {
+		if (ctx.Option.Flag & opt.ColorizeOption) != 0 {
 			return vm_color_indent.DebugRun(ctx, b, codeSet)
 		}
 		return vm_indent.DebugRun(ctx, b, codeSet)
 	}
-	if (ctx.Option.Flag & encoder.ColorizeOption) != 0 {
+	if (ctx.Option.Flag & opt.ColorizeOption) != 0 {
 		return vm_color_indent.Run(ctx, b, codeSet)
 	}
 	return vm_indent.Run(ctx, b, codeSet)

@@ -30,7 +30,7 @@ type queryTestZ struct {
 	ZC int
 }
 
-func (z *queryTestZ) MarshalJSON(ctx context.Context) ([]byte, error) {
+func (z *queryTestZ) MarshalJSONCtx(ctx context.Context) ([]byte, error) {
 	type _queryTestZ queryTestZ
 	return json.MarshalContext(ctx, (*_queryTestZ)(z))
 }

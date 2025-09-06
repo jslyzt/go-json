@@ -6,7 +6,7 @@ package encoder
 func CompileToGetCodeSet(ctx *RuntimeContext, typeptr uintptr) (*OpcodeSet, error) {
 	initEncoder()
 	if typeptr > typeAddr.MaxTypeAddr || typeptr < typeAddr.BaseTypeAddr {
-		codeSet, err := compileToGetCodeSetSlowPath(typeptr)
+		codeSet, err := compileToGetCodeSetSlowPath(ctx.Option, typeptr)
 		if err != nil {
 			return nil, err
 		}
@@ -20,7 +20,7 @@ func CompileToGetCodeSet(ctx *RuntimeContext, typeptr uintptr) (*OpcodeSet, erro
 		}
 		return filtered, nil
 	}
-	codeSet, err := newCompiler().compile(typeptr)
+	codeSet, err := newCompiler().compile(ctx.Option, typeptr)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ const (
 )
 
 type unmarshalerContext interface {
-	UnmarshalJSON(context.Context, []byte) error
+	UnmarshalJSONCtx(context.Context, []byte) error
 }
 
 var (

@@ -3655,7 +3655,7 @@ type unmarshalContextStructType struct {
 	v int
 }
 
-func (t *unmarshalContextStructType) UnmarshalJSON(ctx context.Context, b []byte) error {
+func (t *unmarshalContextStructType) UnmarshalJSONCtx(ctx context.Context, b []byte) error {
 	v := ctx.Value(unmarshalContextKey{})
 	s, ok := v.(string)
 	if !ok {

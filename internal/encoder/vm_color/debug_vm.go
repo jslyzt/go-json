@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/jslyzt/go-json/internal/encoder"
+	eopt "github.com/jslyzt/go-json/internal/option/encode"
 )
 
 func DebugRun(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet) ([]byte, error) {
 	var code *encoder.Opcode
-	if (ctx.Option.Flag & encoder.HTMLEscapeOption) != 0 {
+	if (ctx.Option.Flag & eopt.HTMLEscapeOption) != 0 {
 		code = codeSet.EscapeKeyCode
 	} else {
 		code = codeSet.NoescapeKeyCode
