@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/jslyzt/go-json"
 )
 
 type coverMarshalJSON struct {
@@ -90,7 +90,7 @@ func TestCoverMarshalJSON(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data interface{}
+		data any
 	}{
 		{
 			name: "FuncMarshalJSON",

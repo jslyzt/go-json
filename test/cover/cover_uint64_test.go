@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/jslyzt/go-json"
 )
 
 func TestCoverUint64(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCoverUint64(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data interface{}
+		data any
 	}{
 		{
 			name: "Uint64",

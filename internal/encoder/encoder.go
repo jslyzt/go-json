@@ -13,8 +13,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/goccy/go-json/internal/errors"
-	"github.com/goccy/go-json/internal/runtime"
+	"github.com/jslyzt/go-json/internal/errors"
+	"github.com/jslyzt/go-json/internal/runtime"
 )
 
 func (t OpType) IsMultipleOpHead() bool {
@@ -180,15 +180,15 @@ func PtrToNPtr(p uintptr, ptrNum int) uintptr {
 func PtrToUnsafePtr(p uintptr) unsafe.Pointer {
 	return *(*unsafe.Pointer)(unsafe.Pointer(&p))
 }
-func PtrToInterface(code *Opcode, p uintptr) interface{} {
-	return *(*interface{})(unsafe.Pointer(&emptyInterface{
+func PtrToInterface(code *Opcode, p uintptr) any {
+	return *(*any)(unsafe.Pointer(&emptyInterface{
 		typ: code.Type,
 		ptr: *(*unsafe.Pointer)(unsafe.Pointer(&p)),
 	}))
 }
 
 func ErrUnsupportedValue(code *Opcode, ptr uintptr) *errors.UnsupportedValueError {
-	v := *(*interface{})(unsafe.Pointer(&emptyInterface{
+	v := *(*any)(unsafe.Pointer(&emptyInterface{
 		typ: code.Type,
 		ptr: *(*unsafe.Pointer)(unsafe.Pointer(&ptr)),
 	}))
@@ -268,7 +268,7 @@ type MapContext struct {
 }
 
 var mapContextPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &MapContext{
 			Slice: &Mapslice{},
 		}
@@ -395,7 +395,7 @@ func AppendNumber(_ *RuntimeContext, b []byte, n json.Number) ([]byte, error) {
 	return b, nil
 }
 
-func AppendMarshalJSON(ctx *RuntimeContext, code *Opcode, b []byte, v interface{}) ([]byte, error) {
+func AppendMarshalJSON(ctx *RuntimeContext, code *Opcode, b []byte, v any) ([]byte, error) {
 	rv := reflect.ValueOf(v) // convert by dynamic interface type
 	if (code.Flags & AddrForMarshalerFlags) != 0 {
 		if rv.CanAddr() {
@@ -448,7 +448,7 @@ func AppendMarshalJSON(ctx *RuntimeContext, code *Opcode, b []byte, v interface{
 	return compactedBuf, nil
 }
 
-func AppendMarshalJSONIndent(ctx *RuntimeContext, code *Opcode, b []byte, v interface{}) ([]byte, error) {
+func AppendMarshalJSONIndent(ctx *RuntimeContext, code *Opcode, b []byte, v any) ([]byte, error) {
 	rv := reflect.ValueOf(v) // convert by dynamic interface type
 	if (code.Flags & AddrForMarshalerFlags) != 0 {
 		if rv.CanAddr() {
@@ -498,7 +498,7 @@ func AppendMarshalJSONIndent(ctx *RuntimeContext, code *Opcode, b []byte, v inte
 	return indentedBuf, nil
 }
 
-func AppendMarshalText(ctx *RuntimeContext, code *Opcode, b []byte, v interface{}) ([]byte, error) {
+func AppendMarshalText(ctx *RuntimeContext, code *Opcode, b []byte, v any) ([]byte, error) {
 	rv := reflect.ValueOf(v) // convert by dynamic interface type
 	if (code.Flags & AddrForMarshalerFlags) != 0 {
 		if rv.CanAddr() {
@@ -521,7 +521,7 @@ func AppendMarshalText(ctx *RuntimeContext, code *Opcode, b []byte, v interface{
 	return AppendString(ctx, b, *(*string)(unsafe.Pointer(&bytes))), nil
 }
 
-func AppendMarshalTextIndent(ctx *RuntimeContext, code *Opcode, b []byte, v interface{}) ([]byte, error) {
+func AppendMarshalTextIndent(ctx *RuntimeContext, code *Opcode, b []byte, v any) ([]byte, error) {
 	rv := reflect.ValueOf(v) // convert by dynamic interface type
 	if (code.Flags & AddrForMarshalerFlags) != 0 {
 		if rv.CanAddr() {
@@ -579,7 +579,7 @@ func AppendIndent(ctx *RuntimeContext, b []byte, indent uint32) []byte {
 	return b
 }
 
-func IsNilForMarshaler(v interface{}) bool {
+func IsNilForMarshaler(v any) bool {
 	rv := reflect.ValueOf(v)
 	switch rv.Kind() {
 	case reflect.Bool:

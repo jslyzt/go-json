@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/goccy/go-json"
+	"github.com/jslyzt/go-json"
 )
 
 func ExampleMarshal() {
@@ -201,7 +201,7 @@ func ExampleRawMessage_unmarshal() {
 	}
 
 	for _, c := range colors {
-		var dst interface{}
+		var dst any
 		switch c.Space {
 		case "RGB":
 			dst = new(RGB)

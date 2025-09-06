@@ -3,7 +3,7 @@ package decoder
 import (
 	"unsafe"
 
-	"github.com/goccy/go-json/internal/runtime"
+	"github.com/jslyzt/go-json/internal/runtime"
 )
 
 type anonymousFieldDecoder struct {

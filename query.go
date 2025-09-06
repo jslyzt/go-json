@@ -1,13 +1,13 @@
 package json
 
 import (
-	"github.com/goccy/go-json/internal/encoder"
+	"github.com/jslyzt/go-json/internal/encoder"
 )
 
 type (
 	// FieldQuery you can dynamically filter the fields in the structure by creating a FieldQuery,
 	// adding it to context.Context using SetFieldQueryToContext and then passing it to MarshalContext.
-	// This is a type-safe operation, so it is faster than filtering using map[string]interface{}.
+	// This is a type-safe operation, so it is faster than filtering using map[string]any.
 	FieldQuery       = encoder.FieldQuery
 	FieldQueryString = encoder.FieldQueryString
 )

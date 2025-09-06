@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	gojay "github.com/francoispqt/gojay"
-	gojson "github.com/goccy/go-json"
+	gojson "github.com/jslyzt/go-json"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pquerna/ffjson/ffjson"
 	segmentiojson "github.com/segmentio/encoding/json"
@@ -558,8 +558,8 @@ func Benchmark_Encode_LargeStructCached_GoJsonNoEscape(b *testing.B) {
 	}
 }
 
-func benchMapValue() map[string]interface{} {
-	return map[string]interface{}{
+func benchMapValue() map[string]any {
+	return map[string]any{
 		"a": 1,
 		"b": 2.1,
 		"c": "hello",
@@ -624,7 +624,7 @@ func Benchmark_Encode_MapInterface_GoJson(b *testing.B) {
 }
 
 func Benchmark_Encode_Interface_SegmentioJson(b *testing.B) {
-	v := []interface{}{1}
+	v := []any{1}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		if _, err := segmentiojson.Marshal(v); err != nil {
@@ -634,7 +634,7 @@ func Benchmark_Encode_Interface_SegmentioJson(b *testing.B) {
 }
 
 func Benchmark_Encode_Interface_GoJson(b *testing.B) {
-	v := []interface{}{1}
+	v := []any{1}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		if _, err := gojson.Marshal(v); err != nil {
@@ -867,10 +867,10 @@ func Benchmark_Encode_FilterByMap(b *testing.B) {
 	}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		filteredMap := map[string]interface{}{
+		filteredMap := map[string]any{
 			"XA": v.XA,
 			"XB": v.XB,
-			"XC": map[string]interface{}{
+			"XC": map[string]any{
 				"YA": v.XC.YA,
 				"YB": v.XC.YB,
 			},

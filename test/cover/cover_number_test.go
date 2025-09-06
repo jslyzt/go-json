@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/jslyzt/go-json"
 )
 
 func TestCoverNumber(t *testing.T) {
@@ -37,7 +37,7 @@ func TestCoverNumber(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data interface{}
+		data any
 	}{
 		{
 			name: "Number",

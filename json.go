@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/goccy/go-json/internal/encoder"
+	"github.com/jslyzt/go-json/internal/encoder"
 )
 
 // Marshaler is the interface implemented by types that
@@ -166,34 +166,34 @@ type UnmarshalerContext interface {
 // JSON cannot represent cyclic data structures and Marshal does not
 // handle them. Passing cyclic structures to Marshal will result in
 // an infinite recursion.
-func Marshal(v interface{}) ([]byte, error) {
+func Marshal(v any) ([]byte, error) {
 	return MarshalWithOption(v)
 }
 
 // MarshalNoEscape returns the JSON encoding of v and doesn't escape v.
-func MarshalNoEscape(v interface{}) ([]byte, error) {
+func MarshalNoEscape(v any) ([]byte, error) {
 	return marshalNoEscape(v)
 }
 
 // MarshalContext returns the JSON encoding of v with context.Context and EncodeOption.
-func MarshalContext(ctx context.Context, v interface{}, optFuncs ...EncodeOptionFunc) ([]byte, error) {
+func MarshalContext(ctx context.Context, v any, optFuncs ...EncodeOptionFunc) ([]byte, error) {
 	return marshalContext(ctx, v, optFuncs...)
 }
 
 // MarshalWithOption returns the JSON encoding of v with EncodeOption.
-func MarshalWithOption(v interface{}, optFuncs ...EncodeOptionFunc) ([]byte, error) {
+func MarshalWithOption(v any, optFuncs ...EncodeOptionFunc) ([]byte, error) {
 	return marshal(v, optFuncs...)
 }
 
 // MarshalIndent is like Marshal but applies Indent to format the output.
 // Each JSON element in the output will begin on a new line beginning with prefix
 // followed by one or more copies of indent according to the indentation nesting.
-func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
+func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 	return MarshalIndentWithOption(v, prefix, indent)
 }
 
 // MarshalIndentWithOption is like Marshal but applies Indent to format the output with EncodeOption.
-func MarshalIndentWithOption(v interface{}, prefix, indent string, optFuncs ...EncodeOptionFunc) ([]byte, error) {
+func MarshalIndentWithOption(v any, prefix, indent string, optFuncs ...EncodeOptionFunc) ([]byte, error) {
 	return marshalIndent(v, prefix, indent, optFuncs...)
 }
 
@@ -230,8 +230,8 @@ func MarshalIndentWithOption(v interface{}, prefix, indent string, optFuncs ...E
 //	bool, for JSON booleans
 //	float64, for JSON numbers
 //	string, for JSON strings
-//	[]interface{}, for JSON arrays
-//	map[string]interface{}, for JSON objects
+//	[]any, for JSON arrays
+//	map[string]any, for JSON objects
 //	nil for JSON null
 //
 // To unmarshal a JSON array into a slice, Unmarshal resets the slice length
@@ -270,22 +270,22 @@ func MarshalIndentWithOption(v interface{}, prefix, indent string, optFuncs ...E
 // invalid UTF-16 surrogate pairs are not treated as an error.
 // Instead, they are replaced by the Unicode replacement
 // character U+FFFD.
-func Unmarshal(data []byte, v interface{}) error {
+func Unmarshal(data []byte, v any) error {
 	return unmarshal(data, v)
 }
 
 // UnmarshalContext parses the JSON-encoded data and stores the result
 // in the value pointed to by v. If you implement the UnmarshalerContext interface,
 // call it with ctx as an argument.
-func UnmarshalContext(ctx context.Context, data []byte, v interface{}, optFuncs ...DecodeOptionFunc) error {
+func UnmarshalContext(ctx context.Context, data []byte, v any, optFuncs ...DecodeOptionFunc) error {
 	return unmarshalContext(ctx, data, v)
 }
 
-func UnmarshalWithOption(data []byte, v interface{}, optFuncs ...DecodeOptionFunc) error {
+func UnmarshalWithOption(data []byte, v any, optFuncs ...DecodeOptionFunc) error {
 	return unmarshal(data, v, optFuncs...)
 }
 
-func UnmarshalNoEscape(data []byte, v interface{}, optFuncs ...DecodeOptionFunc) error {
+func UnmarshalNoEscape(data []byte, v any, optFuncs ...DecodeOptionFunc) error {
 	return unmarshalNoEscape(data, v, optFuncs...)
 }
 
@@ -338,7 +338,7 @@ func Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 // escaping within <script> tags, so an alternative JSON encoding must
 // be used.
 func HTMLEscape(dst *bytes.Buffer, src []byte) {
-	var v interface{}
+	var v any
 	dec := NewDecoder(bytes.NewBuffer(src))
 	dec.UseNumber()
 	if err := dec.Decode(&v); err != nil {
@@ -350,7 +350,7 @@ func HTMLEscape(dst *bytes.Buffer, src []byte) {
 
 // Valid reports whether data is a valid JSON encoding.
 func Valid(data []byte) bool {
-	var v interface{}
+	var v any
 	decoder := NewDecoder(bytes.NewReader(data))
 	err := decoder.Decode(&v)
 	if err != nil {

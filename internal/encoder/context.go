@@ -5,7 +5,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/goccy/go-json/internal/runtime"
+	"github.com/jslyzt/go-json/internal/runtime"
 )
 
 type compileContext struct {
@@ -57,7 +57,7 @@ const (
 
 var (
 	runtimeContextPool = sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return &RuntimeContext{
 				Buf:      make([]byte, 0, bufSize),
 				Ptrs:     make([]uintptr, 128),

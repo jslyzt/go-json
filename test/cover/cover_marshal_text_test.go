@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/jslyzt/go-json"
 )
 
 type coverMarshalText struct {
@@ -65,7 +65,7 @@ func TestCoverMarshalText(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data interface{}
+		data any
 	}{
 		// HeadMarshalTextZero
 		{

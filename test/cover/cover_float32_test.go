@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/jslyzt/go-json"
 )
 
 func TestCoverFloat32(t *testing.T) {
@@ -37,7 +37,7 @@ func TestCoverFloat32(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data interface{}
+		data any
 	}{
 		{
 			name: "Float32",

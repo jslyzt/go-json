@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/goccy/go-json/internal/encoder"
-	"github.com/goccy/go-json/internal/runtime"
+	"github.com/jslyzt/go-json/internal/encoder"
+	"github.com/jslyzt/go-json/internal/runtime"
 )
 
 const uintptrSize = 4 << (^uintptr(0) >> 63)
@@ -104,8 +104,8 @@ func ptrToNPtr(p uintptr, ptrNum uint8) uintptr {
 func ptrToUnsafePtr(p uintptr) unsafe.Pointer {
 	return *(*unsafe.Pointer)(unsafe.Pointer(&p))
 }
-func ptrToInterface(code *encoder.Opcode, p uintptr) interface{} {
-	return *(*interface{})(unsafe.Pointer(&emptyInterface{
+func ptrToInterface(code *encoder.Opcode, p uintptr) any {
+	return *(*any)(unsafe.Pointer(&emptyInterface{
 		typ: code.Type,
 		ptr: *(*unsafe.Pointer)(unsafe.Pointer(&p)),
 	}))
@@ -148,11 +148,11 @@ func appendMapEnd(_ *encoder.RuntimeContext, _ *encoder.Opcode, b []byte) []byte
 	return b
 }
 
-func appendMarshalJSON(ctx *encoder.RuntimeContext, code *encoder.Opcode, b []byte, v interface{}) ([]byte, error) {
+func appendMarshalJSON(ctx *encoder.RuntimeContext, code *encoder.Opcode, b []byte, v any) ([]byte, error) {
 	return encoder.AppendMarshalJSON(ctx, code, b, v)
 }
 
-func appendMarshalText(ctx *encoder.RuntimeContext, code *encoder.Opcode, b []byte, v interface{}) ([]byte, error) {
+func appendMarshalText(ctx *encoder.RuntimeContext, code *encoder.Opcode, b []byte, v any) ([]byte, error) {
 	return encoder.AppendMarshalText(ctx, code, b, v)
 }
 

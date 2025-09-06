@@ -5,8 +5,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/goccy/go-json/internal/errors"
-	"github.com/goccy/go-json/internal/runtime"
+	"github.com/jslyzt/go-json/internal/errors"
+	"github.com/jslyzt/go-json/internal/runtime"
 )
 
 var (
@@ -46,7 +46,7 @@ func newSliceDecoder(dec Decoder, elemType *runtime.Type, size uintptr, structNa
 		isElemPointerType: elemType.Kind() == reflect.Ptr || elemType.Kind() == reflect.Map,
 		size:              size,
 		arrayPool: sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return &sliceHeader{
 					data: newArray(elemType, defaultSliceCapacity),
 					len:  0,

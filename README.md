@@ -1,7 +1,7 @@
 # go-json
 
-![Go](https://github.com/goccy/go-json/workflows/Go/badge.svg)
-[![GoDoc](https://godoc.org/github.com/goccy/go-json?status.svg)](https://pkg.go.dev/github.com/goccy/go-json?tab=doc)
+![Go](https://github.com/jslyzt/go-json/workflows/Go/badge.svg)
+[![GoDoc](https://godoc.org/github.com/jslyzt/go-json?status.svg)](https://pkg.go.dev/github.com/jslyzt/go-json?tab=doc)
 [![codecov](https://codecov.io/gh/goccy/go-json/branch/master/graph/badge.svg)](https://codecov.io/gh/goccy/go-json)
 
 Fast JSON encoder/decoder compatible with encoding/json for Go
@@ -22,12 +22,12 @@ Fast JSON encoder/decoder compatible with encoding/json for Go
 ```
 
 We are accepting requests for features that will be implemented between v0.9.0 and v.1.0.0.
-If you have the API you need, please submit your issue [here](https://github.com/goccy/go-json/issues).
+If you have the API you need, please submit your issue [here](https://github.com/jslyzt/go-json/issues).
 
 # Features
 
 - Drop-in replacement of `encoding/json`
-- Fast ( See [Benchmark section](https://github.com/goccy/go-json#benchmarks) )
+- Fast ( See [Benchmark section](https://github.com/jslyzt/go-json#benchmarks) )
 - Flexible customization with options
 - Coloring the encoded string
 - Can propagate context.Context to `MarshalJSON` or `UnmarshalJSON`
@@ -36,16 +36,16 @@ If you have the API you need, please submit your issue [here](https://github.com
 # Installation
 
 ```
-go get github.com/goccy/go-json
+go get github.com/jslyzt/go-json
 ```
 
 # How to use
 
-Replace import statement from `encoding/json` to `github.com/goccy/go-json`
+Replace import statement from `encoding/json` to `github.com/jslyzt/go-json`
 
 ```
 -import "encoding/json"
-+import "github.com/goccy/go-json"
++import "github.com/jslyzt/go-json"
 ```
 
 # JSON library comparison
@@ -98,8 +98,8 @@ $ go test -bench .
 
 # Fuzzing
 
-[go-json-fuzz](https://github.com/goccy/go-json-fuzz) is the repository for fuzzing tests.
-If you run the test in this repository and find a bug, please commit to corpus to go-json-fuzz and report the issue to [go-json](https://github.com/goccy/go-json/issues).
+[go-json-fuzz](https://github.com/jslyzt/go-json-fuzz) is the repository for fuzzing tests.
+If you run the test in this repository and find a bug, please commit to corpus to go-json-fuzz and report the issue to [go-json](https://github.com/jslyzt/go-json/issues).
 
 # How it works
 
@@ -114,7 +114,7 @@ The techniques listed here are the ones used by most of the libraries listed abo
 
 ### Buffer reuse
 
-Since the only value required for the result of `json.Marshal(interface{}) ([]byte, error)` is `[]byte`, the only value that must be allocated during encoding is the return value `[]byte` .
+Since the only value required for the result of `json.Marshal(any) ([]byte, error)` is `[]byte`, the only value that must be allocated during encoding is the return value `[]byte` .
 
 Also, as the number of allocations increases, the performance will be affected, so the number of allocations should be kept as low as possible when creating `[]byte`.
 
@@ -128,7 +128,7 @@ type buffer struct {
 }
 
 var bufPool = sync.Pool{
-    New: func() interface{} {
+    New: func() any {
         return &buffer{data: make([]byte, 0, 1024)}
     },
 }
@@ -150,7 +150,7 @@ As you know, the reflection operation is very slow.
 Therefore, using the fact that the address position where the type information is stored is fixed for each binary ( we call this `typeptr` ),
 we can use the address in the type information to call a pre-built optimized process.
 
-For example, you can get the address to the type information from `interface{}` as follows and you can use that information to call a process that does not have reflection.
+For example, you can get the address to the type information from `any` as follows and you can use that information to call a process that does not have reflection.
 
 To process without reflection, pass a pointer (`unsafe.Pointer`) to the value is stored.
 
@@ -163,7 +163,7 @@ type emptyInterface struct {
 
 var typeToEncoder = map[uintptr]func(unsafe.Pointer)([]byte, error){}
 
-func Marshal(v interface{}) ([]byte, error) {
+func Marshal(v any) ([]byte, error) {
     iface := (*emptyInterface)(unsafe.Pointer(&v)
     typeptr := uintptr(iface.typ)
     if enc, exists := typeToEncoder[typeptr]; exists {
@@ -181,7 +181,7 @@ func Marshal(v interface{}) ([]byte, error) {
 
 ### Do not escape arguments of `Marshal`
 
-`json.Marshal` and `json.Unmarshal` receive `interface{}` value and they perform type determination dynamically to process.
+`json.Marshal` and `json.Unmarshal` receive `any` value and they perform type determination dynamically to process.
 In normal case, you need to use the `reflect` library to determine the type dynamically, but since `reflect.Type` is defined as `interface`, when you call the method of `reflect.Type`, The reflect's argument is escaped.
 
 Therefore, the arguments for `Marshal` and `Unmarshal` are always escaped to the heap.
@@ -192,7 +192,7 @@ For this reason, to date `reflect.Type` is the same as `*reflect.rtype`.
 
 Therefore, by directly handling `*reflect.rtype`, which is an implementation of `reflect.Type`, it is possible to avoid escaping because it changes from `interface` to using `struct`.
 
-The technique for working with `*reflect.rtype` directly from `go-json` is implemented at [rtype.go](https://github.com/goccy/go-json/blob/master/internal/runtime/rtype.go)
+The technique for working with `*reflect.rtype` directly from `go-json` is implemented at [rtype.go](https://github.com/jslyzt/go-json/blob/master/internal/runtime/rtype.go)
 
 Also, the same technique is cut out as a library ( https://github.com/goccy/go-reflect )
 
@@ -353,7 +353,7 @@ However, if there is too much type information, it will use a lot of memory, so 
 
 If this approach is not available, it will fall back to the `atomic` based process described above.
 
-If you want to know more, please refer to the implementation [here](https://github.com/goccy/go-json/blob/master/internal/runtime/type.go#L36-L100)
+If you want to know more, please refer to the implementation [here](https://github.com/jslyzt/go-json/blob/master/internal/runtime/type.go#L36-L100)
 
 ## Decoder
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/jslyzt/go-json"
 )
 
 func TestCoverArray(t *testing.T) {
@@ -49,7 +49,7 @@ func TestCoverArray(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data interface{}
+		data any
 	}{
 		// HeadArrayZero
 		{

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/goccy/go-json/internal/errors"
+	"github.com/jslyzt/go-json/internal/errors"
 )
 
 type boolDecoder struct {
